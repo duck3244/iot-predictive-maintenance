@@ -21,42 +21,42 @@ warnings.filterwarnings('ignore')
 
 # 안전한 import 처리
 try:
-    from data_generator import generate_sample_dataset, IoTSensorDataGenerator
+    from data.data_generator import generate_sample_dataset, IoTSensorDataGenerator
     DATA_GENERATOR_AVAILABLE = True
 except ImportError:
     print("Warning: data_generator.py not found")
     DATA_GENERATOR_AVAILABLE = False
 
 try:
-    from predictive_model import IoTPredictiveMaintenanceModel
+    from models.predictive_model import IoTPredictiveMaintenanceModel
     MODEL_AVAILABLE = True
 except ImportError:
     print("Warning: predictive_model.py not found")
     MODEL_AVAILABLE = False
 
 try:
-    from kafka_streaming import StreamingManager
+    from streaming.kafka_streaming import StreamingManager
     STREAMING_AVAILABLE = True
 except ImportError:
     print("Warning: kafka_streaming.py not found")
     STREAMING_AVAILABLE = False
 
 try:
-    from data_storage import DataManager
+    from core.data_storage import DataManager
     STORAGE_AVAILABLE = True
 except ImportError:
     print("Warning: data_storage.py not found")
     STORAGE_AVAILABLE = False
 
 try:
-    from alert_system import AlertManager
+    from alerts.alert_system import AlertManager
     ALERT_AVAILABLE = True
 except ImportError:
     print("Warning: alert_system.py not found")
     ALERT_AVAILABLE = False
 
 try:
-    from config import config
+    from core.config import config
     CONFIG_AVAILABLE = True
 except ImportError:
     print("Warning: config.py not found")
