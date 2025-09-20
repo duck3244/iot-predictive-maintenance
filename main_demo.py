@@ -5,6 +5,19 @@ IoT 예측 유지보수 시스템 통합 데모
 
 import os
 import sys
+
+# 현재 스크립트의 디렉토리를 Python 경로에 추가
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+
+# 각 서브디렉토리도 경로에 추가
+subdirs = ['core', 'alerts', 'data', 'models', 'streaming', 'dashboard', 'api']
+for subdir in subdirs:
+    full_path = os.path.join(script_dir, subdir)
+    if os.path.exists(full_path) and full_path not in sys.path:
+        sys.path.insert(0, full_path)
+
 import time
 import threading
 import subprocess
@@ -157,55 +170,55 @@ class IoTSystemDemo:
         input("\n⏸️  계속하려면 Enter를 누르세요...")
 
     def _create_data_visualization(self, sample_data):
-        """데이터 시각화 생성"""
+        """Data visualization creation (English version)"""
         try:
-            print("\n🎨 데이터 시각화 생성 중...")
+            print("\n🎨 Generating data visualization...")
 
             plt.style.use('default')
             fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-            fig.suptitle('IoT 센서 데이터 분석 대시보드', fontsize=16, fontweight='bold')
+            fig.suptitle('IoT Sensor Data Analysis Dashboard', fontsize=16, fontweight='bold')
 
-            # 1. 디바이스별 건강도 추이
+            # 1. Health Score Trends by Device
             ax1 = axes[0, 0]
             for device_id in sample_data['device_id'].unique():
                 device_data = sample_data[sample_data['device_id'] == device_id]
                 ax1.plot(device_data.index, device_data['health_score'],
-                        label=device_id, alpha=0.8, linewidth=2)
-            ax1.set_title('디바이스별 건강도 추이', fontweight='bold')
-            ax1.set_xlabel('시간 인덱스')
-            ax1.set_ylabel('건강도 (%)')
+                         label=device_id, alpha=0.8, linewidth=2)
+            ax1.set_title('Health Score Trends by Device', fontweight='bold')
+            ax1.set_xlabel('Time Index')
+            ax1.set_ylabel('Health Score (%)')
             ax1.legend(fontsize=8)
             ax1.grid(True, alpha=0.3)
 
-            # 2. 센서 분포 (온도)
+            # 2. Temperature Sensor Distribution
             ax2 = axes[0, 1]
             ax2.hist(sample_data['temperature'], bins=30, alpha=0.7,
-                    color='orange', edgecolor='black')
-            ax2.set_title('온도 센서 분포', fontweight='bold')
-            ax2.set_xlabel('온도 (°C)')
-            ax2.set_ylabel('빈도')
+                     color='orange', edgecolor='black')
+            ax2.set_title('Temperature Sensor Distribution', fontweight='bold')
+            ax2.set_xlabel('Temperature (°C)')
+            ax2.set_ylabel('Frequency')
             ax2.grid(True, alpha=0.3)
 
-            # 3. 건강도 vs 이상점수 산점도
+            # 3. Health Score vs Anomaly Score Scatter Plot
             ax3 = axes[0, 2]
             scatter = ax3.scatter(sample_data['health_score'], sample_data['anomaly_score'],
-                                 c=sample_data['health_score'], cmap='RdYlGn', alpha=0.6)
-            ax3.set_title('건강도 vs 이상점수 관계', fontweight='bold')
-            ax3.set_xlabel('건강도 (%)')
-            ax3.set_ylabel('이상점수')
-            plt.colorbar(scatter, ax=ax3, label='건강도')
+                                  c=sample_data['health_score'], cmap='RdYlGn', alpha=0.6)
+            ax3.set_title('Health Score vs Anomaly Score Relationship', fontweight='bold')
+            ax3.set_xlabel('Health Score (%)')
+            ax3.set_ylabel('Anomaly Score')
+            plt.colorbar(scatter, ax=ax3, label='Health Score')
             ax3.grid(True, alpha=0.3)
 
-            # 4. 상태별 파이차트
+            # 4. Device Status Pie Chart
             ax4 = axes[1, 0]
             status_counts = sample_data['status'].value_counts()
             colors = {'normal': '#4CAF50', 'warning': '#FF9800', 'critical': '#F44336'}
             pie_colors = [colors.get(status, '#808080') for status in status_counts.index]
             ax4.pie(status_counts.values, labels=status_counts.index, autopct='%1.1f%%',
-                   colors=pie_colors, startangle=90)
-            ax4.set_title('장비 상태 분포', fontweight='bold')
+                    colors=pie_colors, startangle=90)
+            ax4.set_title('Device Status Distribution', fontweight='bold')
 
-            # 5. 센서 상관관계 히트맵
+            # 5. Sensor Correlation Heatmap
             ax5 = axes[1, 1]
             sensor_cols = ['temperature', 'vibration_x', 'vibration_y', 'pressure', 'current']
             available_cols = [col for col in sensor_cols if col in sample_data.columns]
@@ -217,48 +230,48 @@ class IoTSystemDemo:
                 ax5.set_yticks(range(len(available_cols)))
                 ax5.set_xticklabels(available_cols, rotation=45)
                 ax5.set_yticklabels(available_cols)
-                ax5.set_title('센서 상관관계', fontweight='bold')
+                ax5.set_title('Sensor Correlation Matrix', fontweight='bold')
 
-                # 상관계수 텍스트 추가
+                # Add correlation coefficient text
                 for i in range(len(available_cols)):
                     for j in range(len(available_cols)):
                         text = ax5.text(j, i, f'{corr_matrix.iloc[i, j]:.2f}',
-                                       ha="center", va="center", color="black", fontsize=8)
+                                        ha="center", va="center", color="black", fontsize=8)
 
                 plt.colorbar(im, ax=ax5)
             else:
-                ax5.text(0.5, 0.5, 'insufficient\nsensor data',
-                        ha='center', va='center', transform=ax5.transAxes)
-                ax5.set_title('센서 상관관계', fontweight='bold')
+                ax5.text(0.5, 0.5, 'Insufficient\nSensor Data',
+                         ha='center', va='center', transform=ax5.transAxes)
+                ax5.set_title('Sensor Correlation Matrix', fontweight='bold')
 
-            # 6. 운영시간별 성능
+            # 6. Operating Hours vs Health Score
             ax6 = axes[1, 2]
             scatter2 = ax6.scatter(sample_data['operating_hours'], sample_data['health_score'],
-                                  c=sample_data['anomaly_score'], cmap='viridis', alpha=0.6)
-            ax6.set_title('운영시간 vs 건강도', fontweight='bold')
-            ax6.set_xlabel('운영시간 (h)')
-            ax6.set_ylabel('건강도 (%)')
-            plt.colorbar(scatter2, ax=ax6, label='이상점수')
+                                   c=sample_data['anomaly_score'], cmap='viridis', alpha=0.6)
+            ax6.set_title('Operating Hours vs Health Score', fontweight='bold')
+            ax6.set_xlabel('Operating Hours (h)')
+            ax6.set_ylabel('Health Score (%)')
+            plt.colorbar(scatter2, ax=ax6, label='Anomaly Score')
             ax6.grid(True, alpha=0.3)
 
             plt.tight_layout()
 
-            # 파일 저장
+            # Save visualization
             filename = 'demo_data_analysis.png'
             plt.savefig(filename, dpi=150, bbox_inches='tight',
-                       facecolor='white', edgecolor='none')
-            print(f"💾 시각화 저장: {filename}")
+                        facecolor='white', edgecolor='none')
+            print(f"💾 Visualization saved: {filename}")
 
-            # 화면 표시 (가능한 경우)
+            # Display on screen (if possible)
             try:
                 plt.show()
             except:
-                print("   (GUI 환경이 아니어서 화면 표시는 생략됩니다)")
+                print("   (Screen display skipped - not in GUI environment)")
 
             plt.close()
 
         except Exception as e:
-            print(f"⚠️  시각화 생성 중 오류 (계속 진행): {e}")
+            print(f"⚠️  Visualization generation error (continuing): {e}")
 
     def demo_model_training(self):
         """2. 모델 훈련 데모"""

@@ -1,0 +1,1 @@
+{"sequence_length": 30, "prediction_horizon": 5, "feature_columns": ["operating_hours", "health_score", "anomaly_score", "temperature", "vibration_x", "vibration_y", "vibration_z", "pressure", "rotation_speed", "current", "voltage", "power_factor", "noise_level", "power_consumption"], "model_type": "SCARA_optimized"}

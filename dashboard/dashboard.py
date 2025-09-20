@@ -321,13 +321,19 @@ def main():
         
         # 자동 새로고침
         time.sleep(0.1)
-        st.rerun()
+        try:
+            st.rerun()  # Streamlit >= 1.27.0
+        except AttributeError:
+            st.experimental_rerun()  # Streamlit < 1.27.0
     
     # 새로고침 버튼
     if st.sidebar.button("수동 새로고침"):
         for device_id in data_manager.devices.keys():
             data_manager.generate_real_time_data(device_id)
-        st.rerun()
+        try:
+            st.rerun()  # Streamlit >= 1.27.0
+        except AttributeError:
+            st.experimental_rerun()  # Streamlit < 1.27.0
     
     # 메인 대시보드
     col1, col2, col3, col4 = st.columns(4)
