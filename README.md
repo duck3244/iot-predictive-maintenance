@@ -1,6 +1,6 @@
 # 🏭 IoT 예측 유지보수 시스템 (TensorFlow 2.0)
 
-MapR, Pyspark, TensorFlow를 활용한 기존 IoT 디바이스 시계열 예측 데모를 **현대적인 TensorFlow 2.0 기반으로 완전히 재구성**한 프로젝트입니다. 제조업과 Industry 4.0 환경에서 센서 데이터를 실시간으로 모니터링하고 AI 예측을 통해 장비 고장을 사전에 감지하여 예측 유지보수를 가능하게 합니다.
+현대적인 TensorFlow 2.0 기반으로 완전히 재구성된 IoT 예측 유지보수 시스템입니다. 제조업과 Industry 4.0 환경에서 센서 데이터를 실시간으로 모니터링하고 AI 예측을 통해 장비 고장을 사전에 감지하여 예측 유지보수를 가능하게 합니다.
 
 ## 🌟 주요 특징
 
@@ -12,6 +12,7 @@ MapR, Pyspark, TensorFlow를 활용한 기존 IoT 디바이스 시계열 예측 
 - **📡 실시간 처리**: 메모리 기반 스트리밍 처리
 - **⚙️ 설정 관리**: 중앙화된 설정 시스템
 - **🔧 모듈화 설계**: 기능별 독립 모듈 구조
+- **🦾 SCARA 로봇 지원**: 실제 산업용 로봇 데이터 처리
 
 ## 🏗️ 시스템 아키텍처
 
@@ -34,6 +35,9 @@ graph TB
     
     E --> J[Email Notifications]
     E --> K[Real-time Alerts]
+    
+    L[XML Data Processor] --> D
+    L --> M[SCARA Robot Data]
 ```
 
 ## 📂 프로젝트 구조
@@ -44,9 +48,14 @@ graph TB
 │   ├── utils.py               # 공통 유틸리티 함수
 │   └── data_storage.py        # 데이터 저장소 관리
 ├── 📁 data/                   # 데이터 관련
-│   └── data_generator.py      # IoT 센서 데이터 생성기
+│   ├── data_generator.py      # IoT 센서 데이터 생성기
+│   └── xml_data/              # XML 데이터 처리
+│       ├── xml_data_processor.py      # SCARA 로봇 데이터 처리기
+│       ├── debug_xml_data.py         # XML 구조 분석 도구
+│       └── run_xml_processing.py     # XML 처리 실행 스크립트
 ├── 📁 models/                 # AI 모델
-│   └── predictive_model.py    # TensorFlow 2.0 예측 모델
+│   ├── predictive_model.py    # TensorFlow 2.0 예측 모델
+│   └── train_scara_model.py   # SCARA 로봇 모델 훈련
 ├── 📁 streaming/              # 실시간 처리
 │   └── kafka_streaming.py     # 스트리밍 처리 (메모리 기반)
 ├── 📁 alerts/                 # 알림 시스템
@@ -92,20 +101,20 @@ python main_demo.py alert     # 알림 시스템만
 
 ```bash
 # API 서버 시작
-python api_server.py
+python api/api_server.py
 # 브라우저: http://localhost:5000/api/health
 
 # 대시보드 시작
-streamlit run dashboard.py
+streamlit run dashboard/dashboard.py
 # 브라우저: http://localhost:8501
 
 # 모델 훈련
-python predictive_model.py
+python models/predictive_model.py
 ```
 
 ## 🔧 주요 구성요소
 
-### 1. 데이터 생성기 (`data_generator.py`)
+### 1. 데이터 생성기 (`data/data_generator.py`)
 
 **10가지 센서 타입**으로 제조업 장비를 완벽 시뮬레이션:
 
@@ -122,7 +131,7 @@ python predictive_model.py
 
 **사용 예시:**
 ```python
-from data_generator import IoTSensorDataGenerator
+from data.data_generator import IoTSensorDataGenerator
 
 # 디바이스 생성
 generator = IoTSensorDataGenerator("DEVICE_001", failure_probability=0.02)
@@ -135,17 +144,17 @@ print(f"건강도: {data['health_score']}%, 상태: {data['status']}")
 historical_data = generator.generate_historical_data(days=30)
 ```
 
-### 2. AI 예측 모델 (`predictive_model.py`)
+### 2. AI 예측 모델 (`models/predictive_model.py`)
 
 **TensorFlow 2.0 LSTM** 기반 고장 예측 시스템:
 
 - **모델 구조**: 다층 LSTM + Dense layers
 - **특성 엔지니어링**: 롤링 통계, 트렌드 분석, 복합 특성
 - **시계열 처리**: 60분 시퀀스로 10분 후 예측
-- **성능**: 조기 종료, 학습률 스케줄링
+- **성능 최적화**: 조기 종료, 학습률 스케줄링
 
 ```python
-from predictive_model import IoTPredictiveMaintenanceModel
+from models.predictive_model import IoTPredictiveMaintenanceModel
 
 # 모델 훈련
 model = IoTPredictiveMaintenanceModel(sequence_length=60, prediction_horizon=10)
@@ -157,7 +166,26 @@ print(f"고장 확률: {prediction['maintenance_probability']:.1%}")
 print(f"위험 수준: {prediction['risk_level']}")
 ```
 
-### 3. 데이터 저장소 (`data_storage.py`)
+### 3. SCARA 로봇 데이터 처리 (`data/xml_data/`)
+
+**실제 산업용 SCARA 로봇 데이터 지원**:
+
+- **XML 파싱**: 실제 .dat 파일 처리
+- **관절 데이터**: J1, J2, J3, J6 관절 위치/토크/오차
+- **좌표계**: Cartesian 및 SCARA 좌표계 지원
+- **특성 엔지니어링**: 로봇 특화 복합 특성 생성
+
+```bash
+# SCARA 로봇 데이터 처리
+cd data/xml_data
+python run_xml_processing.py
+
+# 처리된 데이터로 모델 훈련
+cd ../../models
+python train_scara_model.py
+```
+
+### 4. 데이터 저장소 (`core/data_storage.py`)
 
 **3가지 저장소 옵션**으로 다양한 환경 지원:
 
@@ -166,7 +194,7 @@ print(f"위험 수준: {prediction['risk_level']}")
 - **SQLite 저장소**: 관계형 DB, 복잡한 쿼리
 
 ```python
-from data_storage import DataManager
+from core.data_storage import DataManager
 
 # 저장소 타입 선택
 manager = DataManager("memory")  # "csv", "sqlite"
@@ -176,7 +204,7 @@ manager.save_data(device_id, sensor_data)
 retrieved_data = manager.get_data(device_id, count=100)
 ```
 
-### 4. 알림 시스템 (`alert_system.py`)
+### 5. 알림 시스템 (`alerts/alert_system.py`)
 
 **다층 임계값** 기반 지능형 알림:
 
@@ -186,7 +214,7 @@ retrieved_data = manager.get_data(device_id, count=100)
 - **이메일 지원**: SMTP 기반 자동 알림
 
 ```python
-from alert_system import AlertManager
+from alerts.alert_system import AlertManager
 
 # 알림 관리자 초기화
 alert_manager = AlertManager()
@@ -201,12 +229,12 @@ alert_manager.add_callback(alert_handler)
 alert_manager.process_data(device_id, sensor_data)
 ```
 
-### 5. 실시간 스트리밍 (`kafka_streaming.py`)
+### 6. 실시간 스트리밍 (`streaming/kafka_streaming.py`)
 
 **메모리 기반 큐**를 사용한 고성능 스트리밍:
 
 ```python
-from kafka_streaming import StreamingManager
+from streaming.kafka_streaming import StreamingManager
 
 # 스트리밍 시스템 설정
 manager = StreamingManager()
@@ -225,7 +253,7 @@ manager.add_data_callback(data_processor)
 manager.start_streaming(interval_seconds=5)
 ```
 
-### 6. REST API (`api_server.py`)
+### 7. REST API (`api/api_server.py`)
 
 **Flask 기반 완전한 웹 API**:
 
@@ -254,7 +282,7 @@ response = requests.get('http://localhost:5000/api/devices', headers=headers)
 print(response.json())
 ```
 
-### 7. 웹 대시보드 (`dashboard.py`)
+### 8. 웹 대시보드 (`dashboard/dashboard.py`)
 
 **Streamlit 기반 4페이지 구성**:
 
@@ -265,13 +293,13 @@ print(response.json())
 
 ```bash
 # 대시보드 실행
-streamlit run dashboard.py
+streamlit run dashboard/dashboard.py
 # 브라우저에서 http://localhost:8501 접속
 ```
 
 ## ⚙️ 설정 관리
 
-### 중앙화된 설정 (`config.py`)
+### 중앙화된 설정 (`core/config.py`)
 
 ```python
 # 주요 설정 클래스들
@@ -300,9 +328,9 @@ export SMTP_SERVER=smtp.gmail.com
 
 ```python
 # 실시간 시스템 구성
-from data_generator import IoTSensorDataGenerator
-from alert_system import AlertManager
-from data_storage import DataManager
+from data.data_generator import IoTSensorDataGenerator
+from alerts.alert_system import AlertManager
+from core.data_storage import DataManager
 
 # 컴포넌트 초기화
 generator = IoTSensorDataGenerator("PUMP_001")
@@ -323,10 +351,34 @@ while True:
     time.sleep(60)  # 1분 간격
 ```
 
-### 2. 배치 예측 분석
+### 2. SCARA 로봇 데이터 처리
+
+```python
+# XML 데이터 처리 및 AI 모델 훈련
+from data.xml_data.xml_data_processor import FixedXMLDataProcessor
+from models.predictive_model import IoTPredictiveMaintenanceModel
+
+# XML 데이터 처리
+processor = FixedXMLDataProcessor('.')
+processed_data = processor.process_full_pipeline(
+    file_pattern="*.dat",
+    time_interval='10S',
+    save_result=True
+)
+
+# AI 모델 훈련
+model = IoTPredictiveMaintenanceModel()
+model.train(processed_data, epochs=50)
+model.save_model("scara_robot_model")
+```
+
+### 3. 배치 예측 분석
 
 ```python
 # 과거 데이터로 모델 훈련 및 평가
+import pandas as pd
+from models.predictive_model import IoTPredictiveMaintenanceModel
+
 data = pd.read_csv('historical_data.csv')
 
 # 모델 훈련
@@ -346,7 +398,7 @@ high_risk_devices = [p for p in predictions if p['risk_level'] == 'high']
 print(f"고위험 장비: {len(high_risk_devices)}개")
 ```
 
-### 3. API 기반 통합
+### 4. API 기반 통합
 
 ```python
 # 외부 시스템과의 API 통합
@@ -377,13 +429,12 @@ for pred in predictions:
 ### 새로운 센서 타입 추가
 
 ```python
-# data_generator.py의 sensor_baselines에 추가
+# core/config.py의 IoTSensorConfig에 추가
 SENSOR_BASELINES = {
     'existing_sensors': '...',
     'new_sensor': 100.0,  # 새 센서 기준값
 }
 
-# config.py의 센서 범위에 추가
 SENSOR_RANGES = {
     'existing_ranges': '...',
     'new_sensor': (80, 120),  # 허용 범위
@@ -394,10 +445,12 @@ SENSOR_RANGES = {
 
 ```python
 # 새로운 알림 규칙 정의
+from alerts.alert_system import AlertRule, AlertType, AlertPriority
+
 custom_rule = AlertRule(
     name="custom_condition",
     condition=lambda data: data.get('custom_metric') > threshold,
-    alert_type=AlertType.CUSTOM,
+    alert_type=AlertType.SYSTEM_ERROR,
     priority=AlertPriority.HIGH,
     message_template="커스텀 조건 만족: {device_id}",
     cooldown_minutes=30
@@ -410,6 +463,8 @@ alert_manager.add_rule(custom_rule)
 
 ```python
 # 새로운 저장소 클래스 구현
+from core.data_storage import DataStorage
+
 class CustomStorage(DataStorage):
     def save_device_data(self, device_id: str, data: Dict) -> bool:
         # 커스텀 저장 로직
@@ -438,7 +493,7 @@ manager.storage = CustomStorage()
    ```bash
    # 다른 포트 사용
    export API_PORT=5001
-   python api_server.py
+   python api/api_server.py
    ```
 
 3. **대시보드 연결 오류**
@@ -447,17 +502,22 @@ manager.storage = CustomStorage()
    curl http://localhost:5000/api/health
    ```
 
+4. **XML 데이터 처리 오류**
+   ```bash
+   # 디버그 모드로 실행
+   cd data/xml_data
+   python debug_xml_data.py --dir .
+   ```
+
 ### 로그 확인
 
-```python
+```bash
 # 로깅 레벨 설정
 export LOG_LEVEL=DEBUG
 
 # 로그 파일 위치
 ls logs/
-- app.log
-- api_server.log
-- predictive_model.log
+# app.log, api_server.log, predictive_model.log 등
 ```
 
 ## 📈 성능 최적화
@@ -482,17 +542,27 @@ model_config.SEQUENCE_LENGTH = 30  # 기본 60
 selected_features = ['temperature', 'vibration_x', 'current']
 ```
 
+### SCARA 로봇 데이터 최적화
+
+```python
+# XML 처리 시 샘플링 간격 조정
+processor.process_full_pipeline(
+    time_interval='10S',  # 10초 간격 (기본 5초)
+    max_files=10  # 파일 수 제한
+)
+```
+
 ## 🧪 테스트
 
 ### 단위 테스트 실행
 
 ```bash
 # 각 모듈 테스트
-python data_generator.py
-python predictive_model.py
-python data_storage.py
-python alert_system.py
-python utils.py
+python data/data_generator.py
+python models/predictive_model.py
+python core/data_storage.py
+python alerts/alert_system.py
+python core/utils.py
 ```
 
 ### 통합 테스트
@@ -506,7 +576,7 @@ python main_demo.py
 
 ```python
 # 대량 데이터 처리 테스트
-from utils import timer
+from core.utils import timer
 
 @timer
 def performance_test():
@@ -515,303 +585,25 @@ def performance_test():
         data = generator.generate_sensor_data()
         # 처리 로직
 ```
-## 📋 주요 기능
 
-- **🔧 IoT 센서 데이터 시뮬레이션**: 제조업 장비의 다양한 센서 데이터 생성
-- **🤖 AI 예측 모델**: TensorFlow 2.0 LSTM 기반 고장 예측
-- **📊 실시간 모니터링**: Streamlit 기반 대시보드
-- **🌊 실시간 스트리밍**: Kafka를 통한 데이터 스트리밍
-- **🔌 REST API**: Flask 기반 API 서버
-- **🐳 Docker 지원**: 컨테이너 기반 배포
-- **📈 데이터 분석**: 센서 데이터 분석 및 시각화
-
-## 🏗️ 시스템 아키텍처
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   IoT Sensors   │───▶│   Kafka Stream  │───▶│  Data Storage   │
-│  (Simulated)    │    │   Processing    │    │   (Redis/CSV)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Dashboard     │◀───│  TensorFlow 2.0 │───▶│   REST API      │
-│  (Streamlit)    │    │  Prediction     │    │   (Flask)       │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## 🚀 빠른 시작
-
-### 1. 환경 설정
+### XML 데이터 테스트
 
 ```bash
-# 가상환경 생성 (권장)
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 의존성 설치
-pip install -r requirements.txt
+# SCARA 로봇 데이터 테스트
+cd data/xml_data
+python run_xml_processing.py test  # 빠른 테스트
+python debug_xml_data.py --test    # 구조 분석
 ```
 
-### 2. 통합 데모 실행
+## 📋 기술 스택
+
+- **AI/ML**: TensorFlow 2.0, scikit-learn, NumPy, Pandas
+- **웹 프레임워크**: Flask (API), Streamlit (대시보드)
+- **데이터베이스**: SQLite, CSV, 메모리 저장소
+- **실시간 처리**: 메모리 기반 큐 시스템
+- **시각화**: Plotly, Matplotlib, Seaborn
+- **인증**: JWT 토큰 기반
+- **데이터 형식**: JSON, CSV, XML
+- **로깅**: Python logging 모듈
 
-```bash
-# 전체 시스템 데모 (단계별 실행)
-python main_demo.py
-
-# 개별 구성요소 테스트
-python main_demo.py data      # 데이터 생성만
-python main_demo.py model     # 모델 훈련만
-python main_demo.py api       # API 서버만
-python main_demo.py dashboard # 대시보드만
-```
-
-### 3. Docker로 실행
-
-```bash
-# 전체 시스템 시작
-docker-compose up --build
-
-# 개별 서비스 실행
-docker-compose up kafka zookeeper redis  # 기본 서비스
-docker-compose up iot-api                # API 서버
-docker-compose up iot-dashboard          # 대시보드
-```
-
-## 📁 프로젝트 구조
-
-```
-├── data_generator.py          # IoT 센서 데이터 생성기
-├── predictive_model.py        # TensorFlow 2.0 예측 모델
-├── kafka_streaming.py         # Kafka 스트리밍 처리
-├── dashboard.py              # Streamlit 대시보드
-├── api_server.py             # Flask REST API 서버
-├── main_demo.py              # 통합 데모 실행
-├── requirements.txt          # Python 의존성
-├── Dockerfile               # Docker 이미지 정의
-├── docker-compose.yml       # 다중 컨테이너 구성
-└── README.md               # 프로젝트 문서
-```
-
-## 🔧 구성요소 상세
-
-### 1. 데이터 생성기 (`data_generator.py`)
-
-제조업 장비의 센서 데이터를 시뮬레이션합니다:
-
-- **센서 타입**: 온도, 진동(X/Y/Z), 압력, 회전속도, 전류, 전압, 역률, 소음
-- **건강도 모델링**: 시간에 따른 장비 성능 저하 시뮬레이션
-- **이상 패턴**: 센서별 고장 패턴 구현
-- **실시간/배치**: 실시간 데이터 스트림 및 과거 데이터 생성
-
-```python
-from data_generator import IoTSensorDataGenerator
-
-# 디바이스 생성
-generator = IoTSensorDataGenerator("DEVICE_001", failure_probability=0.02)
-
-# 실시간 데이터 생성
-data = generator.generate_sensor_data()
-print(f"건강도: {data['health_score']}%, 상태: {data['status']}")
-
-# 과거 데이터 생성
-historical_data = generator.generate_historical_data(days=30)
-```
-
-### 2. 예측 모델 (`predictive_model.py`)
-
-TensorFlow 2.0 기반 LSTM 신경망으로 장비 고장을 예측합니다:
-
-- **모델 구조**: LSTM + Dense layers
-- **특성 엔지니어링**: 롤링 통계, 트렌드, 복합 특성
-- **시계열 처리**: 시퀀스 기반 예측
-- **조기 경보**: 고장 위험도 분류
-
-```python
-from predictive_model import IoTPredictiveMaintenanceModel
-
-# 모델 훈련
-model = IoTPredictiveMaintenanceModel(sequence_length=60, prediction_horizon=10)
-history = model.train(training_data, epochs=50)
-
-# 예측 수행
-prediction = model.predict(device_data, device_id="DEVICE_001")
-print(f"고장 확률: {prediction['maintenance_probability']:.1%}")
-```
-
-### 3. 실시간 스트리밍 (`kafka_streaming.py`)
-
-Apache Kafka를 활용한 실시간 데이터 처리:
-
-- **Producer**: IoT 센서 데이터를 Kafka 토픽으로 전송
-- **Consumer**: 실시간 데이터 수신 및 처리
-- **실시간 예측**: 스트림 데이터로 실시간 고장 예측
-
-```python
-from kafka_streaming import IoTDataProducer, IoTDataConsumer
-
-# Producer 시작
-producer = IoTDataProducer()
-producer.add_device("DEVICE_001")
-producer.start_streaming(interval_seconds=5)
-
-# Consumer 시작
-consumer = IoTDataConsumer()
-consumer.add_callback(lambda data: print(f"수신: {data['device_id']}"))
-consumer.start_consuming()
-```
-
-### 4. 웹 대시보드 (`dashboard.py`)
-
-Streamlit 기반 실시간 모니터링 대시보드:
-
-- **실시간 모니터링**: 디바이스 상태 실시간 표시
-- **데이터 분석**: 과거 데이터 분석 및 시각화
-- **모델 관리**: AI 모델 훈련 및 평가
-- **시스템 설정**: 알림 임계값 및 시스템 구성
-
-```bash
-# 대시보드 실행
-streamlit run dashboard.py
-# 브라우저에서 http://localhost:8501 접속
-```
-
-### 5. REST API (`api_server.py`)
-
-Flask 기반 RESTful API 서버:
-
-```bash
-# API 서버 시작
-python api_server.py
-# http://localhost:5000
-```
-
-**주요 엔드포인트:**
-
-- `POST /api/auth/login` - 사용자 인증
-- `GET /api/devices` - 디바이스 목록 조회
-- `GET /api/devices/{id}/data` - 실시간 센서 데이터
-- `POST /api/predict/{id}` - 고장 예측
-- `GET /api/health` - 시스템 상태 확인
-
-## 📊 사용 예시
-
-### 1. 기본 데이터 생성 및 분석
-
-```python
-# 샘플 데이터 생성
-from data_generator import generate_sample_dataset
-data, devices = generate_sample_dataset()
-
-# 데이터 저장
-data.to_csv('iot_data.csv', index=False)
-
-# 기본 통계
-print(f"총 레코드: {len(data)}")
-print(f"디바이스 수: {data['device_id'].nunique()}")
-print(f"평균 건강도: {data['health_score'].mean():.1f}%")
-```
-
-### 2. 모델 훈련 및 예측
-
-```python
-# 모델 훈련
-model = IoTPredictiveMaintenanceModel()
-history = model.train(data, epochs=50, batch_size=32)
-
-# 모델 저장
-model.save_model("production_model")
-
-# 예측 수행
-device_data = data[data['device_id'] == 'DEVICE_001'].tail(100)
-prediction = model.predict(device_data, 'DEVICE_001')
-
-if prediction['maintenance_needed']:
-    print(f"⚠️ 유지보수 필요: {prediction['maintenance_probability']:.1%} 확률")
-```
-
-### 3. API 클라이언트 사용
-
-```python
-import requests
-
-# 로그인
-response = requests.post('http://localhost:5000/api/auth/login', 
-                        json={'username': 'admin', 'password': 'password123'})
-token = response.json()['token']
-
-# 헤더 설정
-headers = {'Authorization': f'Bearer {token}'}
-
-# 디바이스 데이터 조회
-response = requests.get('http://localhost:5000/api/devices/DEVICE_001/data', 
-                       headers=headers)
-sensor_data = response.json()
-print(f"현재 건강도: {sensor_data['health_score']}%")
-
-# 예측 요청
-response = requests.post('http://localhost:5000/api/predict/DEVICE_001', 
-                        headers=headers)
-prediction = response.json()
-print(f"고장 위험도: {prediction['risk_level']}")
-```
-
-## ⚙️ 설정
-
-### 환경 변수
-
-```bash
-# API 서버 설정
-export PORT=5000
-export DEBUG=False
-export SECRET_KEY=your-secret-key
-
-# Kafka 설정
-export KAFKA_SERVERS=localhost:9092
-export KAFKA_TOPIC=iot_sensor_data
-
-# Redis 설정
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
-```
-
-### 설정 파일
-
-주요 설정은 각 모듈의 초기화 부분에서 수정할 수 있습니다:
-
-- 센서 기준값: `data_generator.py`의 `sensor_baselines`
-- 모델 하이퍼파라미터: `predictive_model.py`의 `build_model()`
-- API 인증: `api_server.py`의 `users` 딕셔너리
-
-## 🔍 문제 해결
-
-### 일반적인 문제
-
-1. **Kafka 연결 실패**
-   ```bash
-   # Kafka 서버 상태 확인
-   docker-compose ps kafka
-   
-   # 로그 확인
-   docker-compose logs kafka
-   ```
-
-2. **모델 훈련 메모리 부족**
-   ```python
-   # 배치 크기 줄이기
-   model.train(data, batch_size=16, epochs=30)
-   ```
-
-3. **API 인증 오류**
-   ```python
-   # 토큰 만료 확인
-   # 새로 로그인 후 토큰 갱신
-   ```
-
-### 로그 확인
-
-```bash
-# 개별 실행 시 로그
-python api_server.py  # 콘솔에 로그 출력
-```
 ---
