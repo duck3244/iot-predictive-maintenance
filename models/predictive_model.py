@@ -315,7 +315,7 @@ class IoTPredictiveMaintenanceModel:
 
 def demo_training():
     """모델 훈련 데모"""
-    from data_generator import generate_sample_dataset
+    from data.data_generator import generate_sample_dataset
     
     print("샘플 데이터 생성 중...")
     data, _ = generate_sample_dataset()
