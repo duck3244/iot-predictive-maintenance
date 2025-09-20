@@ -283,94 +283,171 @@ def train_scara_model(model_df):
 
 
 def plot_training_history(history, model_name):
-    """훈련 히스토리 시각화"""
-    
+    """훈련 히스토리 시각화 (오류 수정 버전)"""
+
     try:
         print(f"\n📊 훈련 결과 시각화...")
-        
+
         fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-        fig.suptitle(f'SCARA 로봇 모델 훈련 결과 - {model_name}', fontsize=16, fontweight='bold')
-        
+        fig.suptitle(f'SCARA robot model training results - {model_name}', fontsize=16, fontweight='bold')
+
         # 1. 손실 그래프
         ax1 = axes[0, 0]
         ax1.plot(history.history['loss'], label='Training Loss', color='blue', linewidth=2)
         ax1.plot(history.history['val_loss'], label='Validation Loss', color='red', linewidth=2)
-        ax1.set_title('모델 손실 (Loss)', fontweight='bold')
+        ax1.set_title('Loss', fontweight='bold')
         ax1.set_xlabel('Epoch')
         ax1.set_ylabel('Loss')
         ax1.legend()
         ax1.grid(True, alpha=0.3)
-        
+
         # 2. 정확도 그래프
         ax2 = axes[0, 1]
         if 'accuracy' in history.history:
             ax2.plot(history.history['accuracy'], label='Training Accuracy', color='blue', linewidth=2)
             ax2.plot(history.history['val_accuracy'], label='Validation Accuracy', color='red', linewidth=2)
-            ax2.set_title('모델 정확도 (Accuracy)', fontweight='bold')
+            ax2.set_title('Accuracy', fontweight='bold')
             ax2.set_xlabel('Epoch')
             ax2.set_ylabel('Accuracy')
             ax2.legend()
             ax2.grid(True, alpha=0.3)
         else:
-            ax2.text(0.5, 0.5, 'Accuracy 데이터 없음', ha='center', va='center', transform=ax2.transAxes)
-            ax2.set_title('모델 정확도', fontweight='bold')
-        
+            ax2.text(0.5, 0.5, 'None accuracy', ha='center', va='center', transform=ax2.transAxes)
+            ax2.set_title('Model accuracy', fontweight='bold')
+
         # 3. 학습률 변화 (있는 경우)
         ax3 = axes[1, 0]
         if 'lr' in history.history:
             ax3.plot(history.history['lr'], color='green', linewidth=2)
-            ax3.set_title('학습률 변화', fontweight='bold')
+            ax3.set_title('Learning rate change', fontweight='bold')
             ax3.set_xlabel('Epoch')
             ax3.set_ylabel('Learning Rate')
             ax3.set_yscale('log')
             ax3.grid(True, alpha=0.3)
         else:
-            ax3.text(0.5, 0.5, '학습률 데이터 없음', ha='center', va='center', transform=ax3.transAxes)
-            ax3.set_title('학습률 변화', fontweight='bold')
-        
-        # 4. 훈련 요약
+            ax3.text(0.5, 0.5, 'No learning rate data', ha='center', va='center', transform=ax3.transAxes)
+            ax3.set_title('Learning rate change', fontweight='bold')
+
+        # 4. 훈련 요약 (수정된 부분)
         ax4 = axes[1, 1]
         ax4.axis('off')
-        
-        # 최종 성능 메트릭
-        final_loss = history.history['val_loss'][-1] if 'val_loss' in history.history else 'N/A'
-        final_acc = history.history['val_accuracy'][-1] if 'val_accuracy' in history.history else 'N/A'
-        total_epochs = len(history.history['loss'])
-        
-        summary_text = f"""
-훈련 요약:
+
+        # 최종 성능 메트릭 - 안전한 형태로 수정
+        try:
+            final_loss = history.history['val_loss'][-1] if 'val_loss' in history.history else 'N/A'
+            final_acc = history.history['val_accuracy'][-1] if 'val_accuracy' in history.history else 'N/A'
+            total_epochs = len(history.history['loss'])
+
+            # f-string 대신 format() 메서드 사용 (더 안전함)
+            summary_text = """
+Total Epochs: {}
+Final Validation Loss: {}
+Final Validation Accuracy: {}
+
+Model Configuration:
+• Architecture: LSTM + Dense
+• Sequence Length: 30 (5 minutes)
+• Prediction Period: 18 (after 3 minutes)
+• Batch Size: 32
+
+Dataset:
+• SCARA Robot Sensor Data
+• 4 Joints (J1, J2, J3, J6)
+• Position, Torque, and Error Information
+            """.format(
+                total_epochs,
+                "{:.4f}".format(final_loss) if isinstance(final_loss, (int, float)) else final_loss,
+                "{:.4f}".format(final_acc) if isinstance(final_acc, (int, float)) else final_acc
+            )
+
+        except Exception as e:
+            # 오류 발생 시 기본 텍스트 사용
+            summary_text = """
+Training Summary:
 ━━━━━━━━━━━━━━━━
-총 에포크: {total_epochs}
-최종 검증 손실: {final_loss:.4f if final_loss != 'N/A' else 'N/A'}
-최종 검증 정확도: {final_acc:.4f if final_acc != 'N/A' else 'N/A'}
 
-모델 구성:
-• 아키텍처: LSTM + Dense
-• 시퀀스 길이: 30 (5분)
-• 예측 기간: 18 (3분 후)
-• 배치 크기: 32
+Model Training Complete
+SCARA Robot Prediction Model
 
-데이터셋:
-• SCARA 로봇 센서 데이터
-• 4개 관절 (J1, J2, J3, J6)
-• 위치, 토크, 오차 정보
-        """
-        
+Model Configuration:
+• Architecture: LSTM + Dense
+• Binary Classification (Maintenance Required/No Maintenance)
+• Training Completed on CPU
+
+Dataset:
+• SCARA Robot Sensor Data
+• Joint Position, Torque, and Error Information
+            """
+
         ax4.text(0.05, 0.95, summary_text, transform=ax4.transAxes, fontsize=11,
-                verticalalignment='top', fontfamily='monospace',
-                bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgray", alpha=0.8))
-        
+                 verticalalignment='top', fontfamily='monospace',
+                 bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgray", alpha=0.8))
+
         plt.tight_layout()
-        
+
         # 저장
         plot_filename = f"{model_name}_training_history.png"
         plt.savefig(plot_filename, dpi=150, bbox_inches='tight', facecolor='white')
         print(f"💾 훈련 그래프 저장: {plot_filename}")
-        
-        plt.show()
-        
+
+        # 화면 표시 시도 (오류 무시)
+        try:
+            plt.show()
+        except:
+            print("   (GUI 환경이 아니어서 화면 표시는 생략됩니다)")
+
+        plt.close()
+
     except Exception as e:
         print(f"⚠️  시각화 오류: {e}")
+        print("   그래프 생성을 건너뛰고 계속 진행합니다.")
+
+
+# 또는 더 간단한 버전
+def plot_training_history_simple(history, model_name):
+    """간단한 훈련 히스토리 시각화 (오류 방지 버전)"""
+
+    try:
+        print(f"\n📊 훈련 결과 시각화...")
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+        fig.suptitle('SCARA robot model training results', fontsize=14, fontweight='bold')
+
+        # 손실 그래프
+        ax1.plot(history.history['loss'], label='Training Loss', color='blue')
+        if 'val_loss' in history.history:
+            ax1.plot(history.history['val_loss'], label='Validation Loss', color='red')
+        ax1.set_title('Loss')
+        ax1.set_xlabel('Epoch')
+        ax1.set_ylabel('Loss')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+
+        # 정확도 그래프
+        if 'accuracy' in history.history:
+            ax2.plot(history.history['accuracy'], label='Training Accuracy', color='blue')
+            if 'val_accuracy' in history.history:
+                ax2.plot(history.history['val_accuracy'], label='Validation Accuracy', color='red')
+            ax2.set_title('Accuracy')
+            ax2.set_xlabel('Epoch')
+            ax2.set_ylabel('Accuracy')
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+        else:
+            ax2.text(0.5, 0.5, 'No Accuracy Data', ha='center', va='center', transform=ax2.transAxes)
+            ax2.set_title('Accuracy')
+
+        plt.tight_layout()
+
+        # 저장
+        plot_filename = f"{model_name}_training_history.png"
+        plt.savefig(plot_filename, dpi=150, bbox_inches='tight')
+        print(f"💾 훈련 그래프 저장: {plot_filename}")
+
+        plt.close()
+
+    except Exception as e:
+        print(f"⚠️  시각화 오류 (무시하고 계속): {e}")
 
 
 def sample_prediction(model, model_df):
